@@ -1,0 +1,4 @@
+data/
+.idea/
+*.sw?
+.ipynb_checkpoints/
