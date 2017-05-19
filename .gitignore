@@ -1,4 +1,6 @@
-data/
+!data/
+data/**
 .idea/
 *.sw?
 .ipynb_checkpoints/
+.Python
