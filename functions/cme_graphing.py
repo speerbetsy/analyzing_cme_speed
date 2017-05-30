@@ -45,7 +45,7 @@ def format_time(time):
 def get_derivative(y,x):
     diff_y=np.diff(y)
     diff_x=np.diff(x)
-    derivative=diff_y/((diff_x.astype(float))*10**-9)
+    derivative=diff_y/diff_x
     return (derivative)
 
 def fit_to_function_velocity(day):
