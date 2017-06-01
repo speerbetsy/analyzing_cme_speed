@@ -33,7 +33,7 @@ def fit_to_function_height(day):
     center_t=t[:-1]+(0.5*diff_t)
     return center_t, height_data
 
-def format_time(time):
+def format_nstime(time): #for time that is in nanoseconds
     #Making calculations
     t=time-time[0]
     t=(np.array(t, dtype=datetime.datetime))*(10**-9)/60
@@ -42,10 +42,22 @@ def format_time(time):
     center_t=t[:-1]+(0.5*diff_t)
     return (center_t)
 
+def format_time(time):
+    #Making calculations
+    t=time-time[0]
+    t=(np.array(t, dtype=datetime.datetime))
+    #get centroid point
+    diff_t=np.diff(t)
+    center_t=t[:-1]+(0.5*diff_t)
+    return (center_t)
+
 def get_derivative(y,x):
     diff_y=np.diff(y)
     diff_x=np.diff(x)
-    derivative=diff_y/diff_x
+    if (diff_x.dtype=='timedelta64[ns]'):
+        derivative=diff_y/(diff_x.astype(float)*10**-9)
+    else:
+        derivative=diff_y/diff_x
     return (derivative)
 
 def fit_to_function_velocity(day):
@@ -72,6 +84,18 @@ def height_graphs(x, y, desc):
 def velocity(time, v_0, a_0):
     #Velocity 1: Model equation
     return (v_0 + (time * a_0))
+
+def height(time, h_0, v_0, a_0):
+    #Height equation
+    return (h_0 + (v_0 * time) + (0.5 * (time**2) * a_0))
+
+def sin_height(time,a_0,a_1,a_2,a_3,a_4,a_5):
+    #sinusoidal height equation
+    return (((-1.0 * a_0 * np.cos((1/a_1)*time*2*np.pi + a_2))/(2*np.pi/a_1)) + a_3*time + 0.5*a_4*(time**2) + a_5)
+
+def sin_velocity(time,a_0,a_1,a_2,a_3,a_4):
+    #the derivative of the above equation
+    return (a_0*np.sin(((1/a_1)*time*2*np.pi)+a_2) + a_3 + a_4*time)
 
 def velocity_graphs(x,y, desc):
     #Velocity vs Time
