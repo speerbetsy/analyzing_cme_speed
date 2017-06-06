@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import datetime
 
-def find_file(date_time):
+def find_file_orig(date_time):
     #First, create the lists for those two days 
     #where we will store their values
     day=[]
@@ -19,6 +19,22 @@ def find_file(date_time):
             break
         x+=1
     return (day)
+
+def find_file(date_min, date_max, min_ht):
+    #date_min and date_max are the date ranges
+    #Create the list that we will store the values
+    days=[]
+    #Second, scan the files for the right dates and time
+    with open('../all_cmes.pkl', 'rb') as f:
+        data = pickle.load(f)
+
+    ht_data=data['HT_DATA']
+    x=0
+    while (x<len(ht_data)):
+        if (ht_data[x]['DATE_TIME'][0]>date_min) and (ht_data[x]['DATE_TIME'][0]<date_max) and (len(ht_data[x]['HEIGHT'])>=min_ht) :
+            days.append(ht_data[x])
+        x+=1
+    return (days)
 
 def fit_to_function_height(day):
     #Extracting data
@@ -64,22 +80,28 @@ def fit_to_function_velocity(day):
    return 0
     
 def height_graphs(x, y, desc):
+    file = open("../heights/"+desc+"_rsun"+".png", "w")
     #Height vs time (Rsun)
     plt.title("Height (Rsun) vs Time "+desc)
     plt.xlabel('Time')
     plt.ylabel('Height (Rsun)')
     plt.plot(x, y,'+')
     #plt.gcf().autofmt_xdate()
-    plt.show()
+    plt.savefig('../heights/'+desc+'_rsun'+'.png')
+    #plt.show()
+    file.close()
     
     #Height vs Time (km)
+    file = open("../heights/"+desc+"_km"+".png", "w")
     y_km=(np.array(y))*695000
     plt.title("Height (km) vs Time "+desc)
     plt.xlabel('Time')
     plt.ylabel('Height (km)')
     plt.plot(x,y_km,'+')
     #plt.gcf().autofmt_xdate()
+    plt.savefig('../heights/'+desc+'_km'+'.png')
     plt.show()
+    file.close()
  
 def velocity(time, v_0, a_0):
     #Velocity 1: Model equation
@@ -98,11 +120,14 @@ def sin_velocity(time,a_0,a_1,a_2,a_3,a_4):
     return (a_0*np.sin(((1/a_1)*time*2*np.pi)+a_2) + a_3 + a_4*time)
 
 def velocity_graphs(x,y, desc):
+    file = open("../velocities/"+desc+"_km"+".png", "w")
     #Velocity vs Time
     plt.title("Velocity vs Time " +desc)
     plt.xlabel('Time (min)')
     plt.ylabel('Velocity km/sec')
     plt.plot(x, y,'+') #one less data point
+    plt.savefig('../velocities/'+desc+'_km'+'.png')
     plt.show()
+    file.close()
 
    
