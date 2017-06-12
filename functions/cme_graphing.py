@@ -4,6 +4,11 @@ import numpy as np
 import datetime
 import pandas as pd
 from scipy.optimize import curve_fit
+from scipy import optimize
+
+rsun = 6.957e8
+h_model = lambda t, *a: -a[0]*np.cos((2*np.pi*t)/a[1] + a[2])/(2*np.pi/a[1]) + a[3]*t + 0.5*a[4]*t**2 + a[5]
+v_model = lambda t, *a: a[0]*np.sin(2*np.pi*t/a[1] +a[2]) + a[3] + a[4] * t
 
 def find_file_orig(date_time):
     #First, create the lists for those two days 
@@ -118,22 +123,22 @@ def height_velocity_graphs(x, y, desc):
     vy=get_derivative(y_km,x)
     ax2 = fig.add_subplot(122)
 #PLOT FITS
+    limits=(np.zeros(5), np.full([5], np.inf))
+    #in meters
+    limits=([30*1e3, 1, 0, 0, -20], [200*1e3, 500*60, 2*np.pi, 3500*1e3, 30])
     #Fit 1: scipy poly fit
-    #param_bounds=([-np.inf,-np.inf, 0,-np.inf,-np.inf],[np.inf, np.inf,np.inf,np.inf, np.inf])
-    #popt, pcov = curve_fit(sin_velocity, tv, vx,bounds=param_bounds)
-    #print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
-
+    #popt, pcov = optimize.curve_fit(v_model, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
+    popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
+    print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
+    popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
     #popt, pcov = curve_fit(sin_velocity, tv, y)
-    #print ("Velocity-Time fit for plt curve function: a0=%f a1=%f \
-    #       a2=%f a3=%f a4=%f a5=%f" %(popt[0], popt[1], popt[2], \
-     #      popt[3], popt[4], popt[5]))
+    
     #plotting
-    #ax2.set_title("Velocity "+ x[0].isoformat())
     ax2.set_title("Velocity "+ desc)
     ax2.set_xlabel('Time (min)')
     ax2.set_ylabel('Velocity (km/s)')
     ax2.plot(tv,vy, '+', label='raw data')
-    #ax2.plot(tv, sin_velocity(tv, *popt)/1000, 'r-.', label='Scipy Curve Fit')
+    ax2.plot(tv, sin_velocity(tv, *popt), '--', label='Scipy Curve Fit')
     ax2.legend(loc=2)
 
     plt.tight_layout()
