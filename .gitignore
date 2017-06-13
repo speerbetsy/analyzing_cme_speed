@@ -2,3 +2,6 @@
 *.sw?
 .ipynb_checkpoints/
 .Python
+.DS_Store
+__pycache__
+*.pyc
