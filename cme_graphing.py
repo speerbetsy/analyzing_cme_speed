@@ -112,7 +112,7 @@ def height_velocity_graphs(x, y, desc):
     #ax1.set_title("Height "+x[0].isoformat())
     ax1.set_title("Height "+desc)
     ax1.set_xlabel('Time (min)')
-    ax1.set_ylabel('Height (Rsun)')
+    ax1.set_ylabel('Height (km)')
     ax1.set_ylim([0,32])
     ax1.plot(t,y, '+', label='raw data')
     ax1.plot(t, fit_h_lin, label='lin fit')
@@ -125,14 +125,14 @@ def height_velocity_graphs(x, y, desc):
     vy=get_derivative(y_km,x)
     ax2 = fig.add_subplot(122)
 #PLOT FITS
-    limits=(np.zeros(5), np.full([5], np.inf))
+   # limits=(np.zeros(5), np.full([5], np.inf))
     #in meters
-    limits=([30*1e3, 1, 0, 0, -30], [200*1e3, 500*60, 2*np.pi, 3500*1e3, 30])
+   # limits=([30*1e3, 1, 0, 0, -20], [200*1e3, 500*60, 2*np.pi, 3500*1e3, 30])
     #Fit 1: scipy poly fit
     #popt, pcov = optimize.curve_fit(v_model, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
     
-    popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
-    print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
+    #popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
+    #print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
     #popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
     #popt, pcov = curve_fit(sin_velocity, tv, y)
     
@@ -141,7 +141,7 @@ def height_velocity_graphs(x, y, desc):
     ax2.set_xlabel('Time (min)')
     ax2.set_ylabel('Velocity (km/s)')
     ax2.plot(tv,vy, '+', label='raw data')
-    ax2.plot(tv, sin_velocity(tv, *popt), '--', label='Scipy Curve Fit')
+    #ax2.plot(tv, sin_velocity(tv, *popt), '--', label='Scipy Curve Fit')
     ax2.legend(loc=2)
 
     plt.tight_layout()
