@@ -1,3 +1,5 @@
+scipy==0.19.0
+matplotlib==2.0.2
 appdirs==1.4.3
 beautifulsoup4==4.5.3
 numpy==1.12.1
@@ -7,3 +9,4 @@ pyparsing==2.2.0
 python-dateutil==2.6.0
 pytz==2016.10
 six==1.10.0
+
