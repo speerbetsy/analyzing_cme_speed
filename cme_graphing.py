@@ -7,25 +7,6 @@ from scipy.optimize import curve_fit
 from scipy import optimize
 
 rsun = 6.957e8
-h_model = lambda t, *a: -a[0]*np.cos((2*np.pi*t)/a[1] + a[2])/(2*np.pi/a[1]) + a[3]*t + 0.5*a[4]*t**2 + a[5]
-v_model = lambda t, *a: a[0]*np.sin(2*np.pi*t/a[1] +a[2]) + a[3] + a[4] * t
-
-def find_file_orig(date_time):
-    #First, create the lists for those two days 
-    #where we will store their values
-    day=[]
-    #Second, scan the files for the right dates and time
-    with open('../all_cmes.pkl', 'rb') as f:
-        data = pickle.load(f)
-
-    ht_data=data['HT_DATA']
-    x=0
-    while (x<len(ht_data)):
-        if (ht_data[x]['DATE_TIME'][0]==date_time):
-            day=ht_data[x]
-            break
-        x+=1
-    return (day)
 
 def find_file(date_min, date_max, min_ht):
     #date_min and date_max are the date ranges
@@ -39,7 +20,6 @@ def find_file(date_min, date_max, min_ht):
 
     filtered_cmes=cmes[(cmes['NUM_DATA_POINTS'] >=min_ht) & (cmes['datetime'] >= date_min) & (cmes['datetime'] <= date_max)]
     return (filtered_cmes)
-
 
 def fit_to_function_height(day):
     #Extracting data
@@ -57,7 +37,7 @@ def fit_to_function_height(day):
 def format_nstime(time): #for time that is in nanoseconds
     #Making calculations
     t=time-time[0]
-    t=(np.array(t, dtype=datetime.datetime))*(10**-9)/60
+    t=(np.array(t, dtype=datetime.datetime))*(10**-9)#/60
     #get centroid point
     diff_t=np.diff(t)
     center_t=t[:-1]+(0.5*diff_t)
@@ -79,75 +59,76 @@ def get_derivative(y,x):
         derivative=diff_y/(diff_x.astype(float)*10**-9)
     else:
         derivative=diff_y/diff_x
-    return (derivative)
+    x_center = x[:-1] + diff_x / 2.0
+    return (x_center, derivative)
 
-def fit_to_function_velocity(day):
-   return 0
     
-def height_velocity_graphs(x, y, desc):
+def height_velocity_graphs(x, y, desc):  
     #Setting up the plot
     fig = plt.figure(1, figsize=(12,12))
     t_iso=desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
-    file = open("figures/test/"+t_iso+'.png', "w")
     
     #Making calculations and formatting time properly
-    t=x-x[0]
-    t=(np.array(t, dtype=datetime.datetime))*(10**-9)/60
+    t = x.astype(float) * 1e-9  # from nanoseconds to seconds
+    t0 = t[0]
+    t -= t0
     
     #Height vs time (Rsun)
-    y=(np.array(y))
+    y=(np.array(y))*rsun #y is in meters
     ax1 = fig.add_subplot(121)
 #PLOT FITS
     #Fit 1 H-T: Linear Algebra Least-squares method
     A = np.vstack([t, np.ones(len(t))]).T
     lin = np.linalg.lstsq(A, y)[0] #grabs values for velocity
     fit_h_lin = lin[1] + (t * lin[0])
-    print('Least-squares linear fit (h-t): v=%f m/s, h=%f R_Sun' % (lin[0]/1000, lin[1]))
+    print('Least-squares linear fit (h-t): v=%f km/s, h=%f R_Sun' % (lin[0]/1000, lin[1]/rsun))
     #Fit 2 H-T: Quadratic fit Least-squares method
     A = np.vstack([t**2, t, np.ones(len(t))]).T
     quad = np.linalg.lstsq(A, y)[0] #grabs values for acceleration and velocity
     fit_h_quad = quad[2] + (t * quad[1]) + ((t**2)*0.5*quad[0])#quad1=velocity, quad0=acceleration
-    print('Least-squares quadratic fit (h-t): a=%f m/s^2, v=%f km/s, h=%f R_Sun' % ((quad[0]*2), quad[1]/1000, quad[2]))
+    print('Least-squares quadratic fit (h-t): a=%f m/s^2, v=%f km/s, h=%f R_Sun' % ((quad[0]*2), quad[1]/1000, quad[2]/rsun))
     #plotting
-    #ax1.set_title("Height "+x[0].isoformat())
     ax1.set_title("Height "+desc)
     ax1.set_xlabel('Time (min)')
-    ax1.set_ylabel('Height (km)')
+    ax1.set_ylabel('Height (Rsun)')
     ax1.set_ylim([0,32])
-    ax1.plot(t,y, '+', label='raw data')
-    ax1.plot(t, fit_h_lin, label='lin fit')
-    ax1.plot(t, fit_h_quad, label='quad fit')
+    ax1.plot(t/60,y/rsun, '+', label='raw data')
+    ax1.plot(t/60, fit_h_lin/rsun, label='lin fit')
+    ax1.plot(t/60, fit_h_quad/rsun, label='quad fit')
     ax1.legend(loc=2)
 
-    #Velocity vs Time
-    tv=format_nstime(x)
-    y_km=y*695000
-    vy=get_derivative(y_km,x)
-    ax2 = fig.add_subplot(122)
-#PLOT FITS
-   # limits=(np.zeros(5), np.full([5], np.inf))
-    #in meters
-   # limits=([30*1e3, 1, 0, 0, -20], [200*1e3, 500*60, 2*np.pi, 3500*1e3, 30])
-    #Fit 1: scipy poly fit
-    #popt, pcov = optimize.curve_fit(v_model, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
     
-    #popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
-    #print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
-    #popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
-    #popt, pcov = curve_fit(sin_velocity, tv, y)
+    #Velocity vs Time
+    #tv=format_nstime(x)
+    #y is in Rsun
+    y_km=y #*695000
+    
+    tv, vy=get_derivative(y_km,t)
+    ax2 = fig.add_subplot(122)
+    
+    fit_v_lin=np.full(len(tv),lin[0])
+    fit_v_quad=quad[1]+(quad[0]*tv)
+#PLOT FITS
+    limits=(np.zeros(5), np.full([5], np.inf))
+    #in meters
+    limits=([30*1e3, 1, 0, 0, -30], [200*1e3, 1400*60, 2*np.pi, 3500*1e3, 30])
+    #Fit 1: scipy poly fit
+    popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
+    print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
     
     #plotting
     ax2.set_title("Velocity "+ desc)
     ax2.set_xlabel('Time (min)')
-    ax2.set_ylabel('Velocity (km/s)')
-    ax2.plot(tv,vy, '+', label='raw data')
-    #ax2.plot(tv, sin_velocity(tv, *popt), '--', label='Scipy Curve Fit')
+    ax2.set_ylabel('Velocity (Rsun/s)')
+    ax2.plot(tv/60,vy/1000, '+', label='raw data')
+    #ax2.plot(tv/60, (sin_velocity(tv, *popt))/rsun, '--', label='Scipy Curve Fit')
+    ax2.plot(tv/60, fit_v_lin/1000, label='fit v lin')
+    ax2.plot(tv/60, fit_v_quad/1000, label='fit v quad')
     ax2.legend(loc=2)
 
     plt.tight_layout()
     plt.savefig("figures/test/"+t_iso+'.png')
     plt.show()
-    file.close()
     
 def height_graphs(x, y, desc):
     file = open("figures/"+desc+".png", "w")
@@ -166,7 +147,7 @@ def height_graphs(x, y, desc):
     y_km=(np.array(y))*695000
     plt.title("Height (km) vs Time "+desc)
     plt.xlabel('Time')
-    plt.ylabel('Height (km)')
+    plt.ylabel('Height')
     plt.plot(x,y_km,'+')
     #plt.gcf().autofmt_xdate()
     plt.savefig("figures/"+desc+'.png')
