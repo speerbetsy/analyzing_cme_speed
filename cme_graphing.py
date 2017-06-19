@@ -67,102 +67,88 @@ def height(time, h_0, v_0, a_0):
     return (h_0 + (v_0 * time) + (0.5 * (time**2) * a_0))
 
     
-def height_graphs(x, y, desc):
-    file = open("figures/"+desc+".png", "w")
-    #Height vs time (Rsun)
-    plt.title("Height (Rsun) vs Time "+desc)
-    plt.xlabel('Time')
-    plt.ylabel('Height (Rsun)')
-    plt.plot(x, y,'+')
-    #plt.gcf().autofmt_xdate()
-    plt.savefig('figures/'+desc+'.png')
-    #plt.show()
-    file.close()
-    
-    #Height vs Time (km)
-    file = open("figures/"+desc+".png", "w")
-    y_km=(np.array(y))*695000
-    plt.title("Height (km) vs Time "+desc)
-    plt.xlabel('Time')
-    plt.ylabel('Height')
-    plt.plot(x,y_km,'+')
-    #plt.gcf().autofmt_xdate()
-    plt.savefig("figures/"+desc+'.png')
-    plt.show()
-    file.close()
+def height_graphs(ax1, x, yarray, desc):
+    ax1.set_title("Height "+desc)
+    ax1.set_xlabel('Time (min)')
+    ax1.set_ylabel('Height (Rsun)')
+    ax1.set_ylim([0,32])
+    for y in yarray:
+        ax1.plot(x/60,y[0]/rsun, label=y[1])
+    ax1.legend(loc=2)
+    return (ax1)    
     
 def height_velocity_graphs(x, y, desc): 
     #x is in datetime, y is in Rsun
     #Setting up the plot
     fig = plt.figure(1, figsize=(12,9))
-    t_iso=desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
     
-    #Making calculations and formatting time properly
+    #Formatting x and y
+    #formatting Time properly so it is seconds from start
     t = x.astype(float) * 1e-9  # from nanoseconds to seconds
     t0 = t[0]
     t -= t0
-    
-    #Height vs time (Rsun)
+    #Converting y from Rsun to meters
     y=(np.array(y))*rsun #y is now in meters
-    ax1 = fig.add_subplot(121)
-#PLOT FITS
+    
+#HEIGHT AND VELOCITY CALCULATIONS
+    height_yarrays=[]
+    velocity_yarrays=[]
+    
+    #raw data for height and velocity
+    ax1.plot(t/60,y/rsun, '+', label='raw data')
+    tv, vy=get_derivative(y,t)
+    ax2.plot(tv/60,vy/1000, '+', label='raw data')
+    
+    #Fit 1: Linear Algebra Least-squares method
+    hy1, hlabel1, vy1, vlabel1 = lin_fit_lstsq(t,tv,y)
+    height_yarrays.append([hy1, hlabel1])
+    velocity_yarrays.append([vy1, vlabel1])
+    
+    #Fit 2: Quadratic fit Least-squares method
+    hy2, hlabel2, vy2, vlabel2=quad_fit_lstsq(t,tv,y)
+    height_yarrays.append([hy2, hlabel2])
+    velocity_yarrays.append([vy2, vlabel2])
+    
+    #Fit 3: Linear Curve Fit
+    y3,label3=lin_curve_fit_h(t,y)
+    height_yarrays.append([y3,label3])
+    #Fit 4: Quadratic Curve Fit
+    y4, label4=quad_curve_fit_h(t,y)
+    height_yarrays.append([y4,label4])
+
+#HEIGHT AND VELOCITY GRAPH PLOTTING
+    height_graphs(ax1,t,height_yarrays,desc)
+    velocity_graphs(ax2,tv,velocity_yarrays,desc)
+    plt.tight_layout()
+    t_marks=desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
+    plt.savefig("figures/test/"+t_marks+'.png')
+    plt.show() 
+#oscillating curve fit attempts, commented out for now bc they dont work
+   # limits=(np.zeros(5), np.full([5], np.inf))
+    #in meters
+  #  limits=([30*1e3, 1, 0, 0, -30], [200*1e3, 1400*60, 2*np.pi, 3500*1e3, 30])
+    #Fit 1: scipy poly fit
+  #  popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
+    #print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
+
+    
+def lin_curve_fit_h(t,y):
+    lin_opt, lin_cov = curve_fit(lin_height_model, t, y, p0=[2 * rsun, 400 * 1e3])
+    curve_fit_lin=lin_height_model(t, *lin_opt)
+    label='Linear Curve Fit, v=%.1f km/s h=%.1f rsun'%(lin_opt[1]/1000, lin_opt[0]/rsun)
+    return (curve_fit_lin,label)
+
+def lin_fit_lstsq(t,tv,y):
     #Fit 1 H-T: Linear Algebra Least-squares method
     A = np.vstack([t, np.ones(len(t))]).T
     lin = np.linalg.lstsq(A, y)[0] #grabs values for velocity
     fit_h_lin = lin[1] + (t * lin[0])
-    print('Least-squares linear fit (h-t): v=%f km/s, h=%f R_Sun' % (lin[0]/1000, lin[1]/rsun))
-    #Fit 2 H-T: Quadratic fit Least-squares method
-    A = np.vstack([t**2, t, np.ones(len(t))]).T
-    quad = np.linalg.lstsq(A, y)[0] #grabs values for acceleration and velocity
-    fit_h_quad = quad[2] + (t * quad[1]) + ((t**2)*0.5*quad[0])#quad1=velocity, quad0=acceleration
-    print('Least-squares quadratic fit (h-t): a=%f m/s^2, v=%f km/s, h=%f R_Sun' % ((quad[0]*2), quad[1]/1000, quad[2]/rsun))
-    #Fit 3: Scipy
-    lin_opt, lin_cov = curve_fit(lin_height_model, t, y, p0=[2 * rsun, 400 * 1e3])
-    quad_opt, quad_cov = curve_fit(quad_height_model, t, y, p0=[2 * rsun, 400 * 1e3, 0.0])
-    print ("Lin Curve fit: a=%f m/s^2, v=%f km/s" %(lin_opt[0], lin_opt[1]/1000))
-    print ("Quad Curve fit: a=%f m/s^2, v=%f km/s h=%f rsun" %(quad_opt[2], quad_opt[1]/1000, quad_opt[0]/rsun))
-    
-    #plotting
-    ax1.set_title("Height "+desc)
-    ax1.set_xlabel('Time (min)')
-    ax1.set_ylabel('Height (Rsun)')
-    ax1.set_ylim([0,32])
-    ax1.plot(t/60,y/rsun, '+', label='raw data')
-    ax1.plot(t/60, fit_h_lin/rsun, label='LstSq Linear Fit: v=%.f km/s, h=%.f R_Sun' % (lin[0]/1000, lin[1]/rsun))
-    ax1.plot(t/60, fit_h_quad/rsun, label='LstSq Quadratic Fit: a=%.f m/s^2, v=%.f km/s, h=%.f R_Sun' % ((quad[0]*2), quad[1]/1000, quad[2]/rsun))
-    ax1.plot(t/60, (lin_height_model(t, *lin_opt))/rsun, '--', label='Linear Curve Fit, v=%.f km/s h=%.f rsun'%(lin_opt[1]/1000, lin_opt[0]/rsun))
-    ax1.plot(t/60, (quad_height_model(t, *quad_opt))/rsun, '--', label='Quadratic Curve Fit, a=%.f m/s^2, v=%.f km/s h=%.f rsun'%(quad_opt[2], quad_opt[1]/1000, quad_opt[0]/rsun))
-    ax1.legend(loc=2)
-
-    #Velocity vs Time
-    #tv=format_nstime(x)
-  
-    tv, vy=get_derivative(y,t)
-    ax2 = fig.add_subplot(122)
-    
+    hlabel= 'LstSq Linear Fit: v=%.1f km/s, h=%.1f R_Sun' % (lin[0]/1000, lin[1]/rsun)
     fit_v_lin=np.full(len(tv),lin[0])
-    fit_v_quad=quad[1]+(quad[0]*tv)
-#PLOT FITS
-    limits=(np.zeros(5), np.full([5], np.inf))
-    #in meters
-    limits=([30*1e3, 1, 0, 0, -30], [200*1e3, 1400*60, 2*np.pi, 3500*1e3, 30])
-    #Fit 1: scipy poly fit
-    popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
-    print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
-    
-    #plotting
-    ax2.set_title("Velocity "+ desc)
-    ax2.set_xlabel('Time (min)')
-    ax2.set_ylabel('Velocity (Km/s)')
-    ax2.plot(tv/60,vy/1000, '+', label='raw data')
-    #ax2.plot(tv/60, (sin_velocity(tv, *popt))/rsun, '--', label='Scipy Curve Fit')
-    ax2.plot(tv/60, fit_v_lin/1000, label='fit v lin')
-    ax2.plot(tv/60, fit_v_quad/1000, label='fit v quad')
-    ax2.legend(loc=2)
-
-    plt.tight_layout()
-    plt.savefig("figures/test/"+t_iso+'.png')
-    plt.show()
+    vlabel='LstSq Linear Velocity'
+    return (fit_h_lin, hlabel, fit_v_lin, vlabel)
 
 def lin_height_model(t, *a):
     return a[0] + a[1] * t
@@ -170,9 +156,26 @@ def lin_height_model(t, *a):
 def lin_vel_model(t, *a):
     return np.full(t.shape, a[0])
 
-def quad_height_model(t, *a):
-    return a[0] + a[1] * t + 0.5 * a[2] * t ** 2
+def quad_curve_fit_h(t,y):
+    quad_opt, quad_cov = curve_fit(quad_height_model, t, y, p0=[2 * rsun, 400 * 1e3, 0.0])
+    curve_fit_quad=quad_height_model(t, *quad_opt)
+    label='Quad Curve Fit, a=%.1f m/s^2, v=%.1f km/s h=%.1f rsun'%(quad_opt[2], quad_opt[1]/1000, quad_opt[0]/rsun)
+    return (curve_fit_quad, label)
 
+def quad_fit_lstsq(t,tv,y):
+    A = np.vstack([t**2, t, np.ones(len(t))]).T
+    quad = np.linalg.lstsq(A, y)[0] #grabs values for acceleration and velocity
+    fit_h_quad = quad[2] + (t * quad[1]) + ((t**2)*quad[0])#quad1=velocity, quad0=acceleration  also multiplied a by 0.5
+    hlabel='LstSq Quad Fit: a=%.1f m/s^2, v=%.1f km/s, h=%.1f R_Sun' % ((quad[0]*2), quad[1]/1000, quad[2]/rsun)
+    fit_v_quad=quad[1]+(quad[0]*tv)
+    vlabel='LstSq Quad Velocity'
+    return (fit_h_quad, hlabel, fit_v_quad, vlabel)
+
+
+
+def quad_height_model(t, *a):
+    return a[0] + a[1] * t +  0.5 * a[2] * t ** 2
+    
 def sin_height(time,a_0,a_1,a_2,a_3,a_4,a_5):
     #sinusoidal height equation
     return (((-1.0 * a_0 * np.cos((1/a_1)*time*2*np.pi + a_2))/(2*np.pi/a_1)) + a_3*time + 0.5*a_4*(time**2) + a_5)
@@ -181,16 +184,14 @@ def sin_velocity(time,a_0,a_1,a_2,a_3,a_4):
     #the derivative of the above equation
     return (a_0*np.sin(((1/a_1)*time*2*np.pi)+a_2) + a_3 + a_4*time)
 
-def velocity_graphs(x,y, desc):
-    file = open("figures/"+desc+".png", "w")
-    #Velocity vs Time
-    plt.title("Velocity vs Time " +desc)
-    plt.xlabel('Time (min)')
-    plt.ylabel('Velocity km/sec')
-    plt.plot(x, y,'+') #one less data point
-    plt.savefig("figures/"+desc+'.png')
-    plt.show()
-    file.close()
+def velocity_graphs(ax2,x,yarray, desc):
+    ax2.set_title("Velocity "+desc)
+    ax2.set_xlabel('Time (min)')
+    ax2.set_ylabel('Velocity (km/sec)')
+    for y in yarray:
+        ax2.plot(x/60,y[0]/1000, label=y[1])
+    ax2.legend(loc=2)
+    return (ax2)    
     
 def velocity(time, v_0, a_0):
     #Velocity 1: Model equation
