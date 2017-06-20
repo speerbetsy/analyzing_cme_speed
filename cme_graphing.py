@@ -81,6 +81,7 @@ def height_velocity_graphs(x, y, desc):
     #x is in datetime, y is in Rsun
     #Setting up the plot
     fig = plt.figure(1, figsize=(12,9))
+    plt.clf()
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
     
