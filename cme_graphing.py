@@ -5,6 +5,7 @@ import datetime
 import pandas as pd
 from scipy.optimize import curve_fit
 from scipy import optimize
+from scipy.stats import chisquare
 
 rsun = 6.957e8
 
@@ -106,20 +107,28 @@ def height_velocity_graphs(x, y, desc):
     hy1, hlabel1, vy1, vlabel1 = lin_fit_lstsq(t,tv,y)
     height_yarrays.append([hy1, hlabel1])
     velocity_yarrays.append([vy1, vlabel1])
+    stat, pvalue=chisquare(y,hy1)
+    print ("this is lin lstsq stat: ",stat," and this is lin lstsq pvalue: ",pvalue)
     
     #Fit 2: Quadratic fit Least-squares method
     hy2, hlabel2, vy2, vlabel2=quad_fit_lstsq(t,tv,y)
     height_yarrays.append([hy2, hlabel2])
     velocity_yarrays.append([vy2, vlabel2])
+    stat, pvalue=chisquare(hy2,y)
+    print ("this is quad lstsq stat: ",stat," and this is quad lstsq pvalue: ",pvalue)
     
     #Fit 3: Linear Curve Fit
     #v_i is the initial velocity for p0
     y3,label3,v_i=lin_curve_fit_h(t,y)
     height_yarrays.append([y3,label3])
+    stat, pvalue=chisquare(y3,y)
+    print ("this is lin curve stat: ",stat," and this is lin curve pvalue: ",pvalue)
     #Fit 4: Quadratic Curve Fit
     #acc_i is the initial acceleration for p0
     y4, label4, acc_i=quad_curve_fit_h(t,y)
     height_yarrays.append([y4,label4])
+    stat, pvalue=chisquare(y4,y)
+    print ("this is quad curve stat: ",stat," and this is quad curve pvalue: ",pvalue)
 
 #Fit 4: Oscillating curve fit 
     #in meters and seconds
@@ -132,6 +141,10 @@ def height_velocity_graphs(x, y, desc):
     vlabel3="Oscillating Fit: a0=%.1f km/s, a1=%.1f 1/s, a2=%.1f (phase), a3=%.1f km/s, a4=%.1f m/s^2" %(popt[0]/1000, popt[1]/60, popt[2], popt[3]/1000, popt[4])
     # print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
     velocity_yarrays.append([sin_velocity(tv, *popt),vlabel3])
+    
+#Next, apply goodness of fit from oscillating fit to real data
+    stat, pvalue=chisquare(vy,sin_velocity(tv, *popt))
+    print ("this is stat: ",stat," and this is pvalue: ",pvalue)
 
 #HEIGHT AND VELOCITY GRAPH PLOTTING
     height_graphs(ax1,t,height_yarrays,desc)
