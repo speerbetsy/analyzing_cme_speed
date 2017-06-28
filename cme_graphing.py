@@ -113,11 +113,25 @@ def height_velocity_graphs(x, y, desc):
     velocity_yarrays.append([vy2, vlabel2])
     
     #Fit 3: Linear Curve Fit
-    y3,label3=lin_curve_fit_h(t,y)
+    #v_i is the initial velocity for p0
+    y3,label3,v_i=lin_curve_fit_h(t,y)
     height_yarrays.append([y3,label3])
     #Fit 4: Quadratic Curve Fit
-    y4, label4=quad_curve_fit_h(t,y)
+    #acc_i is the initial acceleration for p0
+    y4, label4, acc_i=quad_curve_fit_h(t,y)
     height_yarrays.append([y4,label4])
+
+#Fit 4: Oscillating curve fit 
+    #in meters and seconds
+    #a0=amplitude (m/s), a1=phase (s^-1), a2=phase, a3=velocity (m/s), a4= acceleration (m/s^2)
+    #limits=([a0min, a1min, a2min, a3min, a4min], [a0max, a1max, a2max, a3max, a4max])
+    short_p=2*(np.amin(np.diff(tv))) #period can't be shorter than twice the shortest step
+    limits=([10*1e3,short_p,0,10,-20], [10*1e4,t[-1],2*np.pi,300000*1e3,30])
+    #Fit 1: scipy poly fit
+    popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[87*1e3, t[-1]*0.75, 0, v_i, acc_i], bounds=limits)
+    vlabel3="Oscillating Fit: a0=%.1f km/s, a1=%.1f 1/s, a2=%.1f (phase), a3=%.1f km/s, a4=%.1f m/s^2" %(popt[0]/1000, popt[1]/60, popt[2], popt[3]/1000, popt[4])
+    # print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
+    velocity_yarrays.append([sin_velocity(tv, *popt),vlabel3])
 
 #HEIGHT AND VELOCITY GRAPH PLOTTING
     height_graphs(ax1,t,height_yarrays,desc)
@@ -126,20 +140,13 @@ def height_velocity_graphs(x, y, desc):
     t_marks=desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
     plt.savefig("figures/test/"+t_marks+'.png')
     plt.show() 
-#oscillating curve fit attempts, commented out for now bc they dont work
-   # limits=(np.zeros(5), np.full([5], np.inf))
-    #in meters
-  #  limits=([30*1e3, 1, 0, 0, -30], [200*1e3, 1400*60, 2*np.pi, 3500*1e3, 30])
-    #Fit 1: scipy poly fit
-  #  popt, pcov = optimize.curve_fit(sin_velocity, tv, vy, p0=[50*1e3, 500*60, 0, 1e5, 10], bounds=limits)
-    #print ("Curve fit: a0=%f km/s, a1=%f 1/s, a2=%f (phase), a3=%f km/s, a4=%f m/s^2" %(popt[0]/1000, popt[1], popt[2], popt[3]/1000, popt[4]))
 
     
 def lin_curve_fit_h(t,y):
     lin_opt, lin_cov = curve_fit(lin_height_model, t, y, p0=[2 * rsun, 400 * 1e3])
     curve_fit_lin=lin_height_model(t, *lin_opt)
     label='Linear Curve Fit, v=%.1f km/s h=%.1f rsun'%(lin_opt[1]/1000, lin_opt[0]/rsun)
-    return (curve_fit_lin,label)
+    return (curve_fit_lin,label,lin_opt[1])
 
 def lin_fit_lstsq(t,tv,y):
     #Fit 1 H-T: Linear Algebra Least-squares method
@@ -161,7 +168,7 @@ def quad_curve_fit_h(t,y):
     quad_opt, quad_cov = curve_fit(quad_height_model, t, y, p0=[2 * rsun, 400 * 1e3, 0.0])
     curve_fit_quad=quad_height_model(t, *quad_opt)
     label='Quad Curve Fit, a=%.1f m/s^2, v=%.1f km/s h=%.1f rsun'%(quad_opt[2], quad_opt[1]/1000, quad_opt[0]/rsun)
-    return (curve_fit_quad, label)
+    return (curve_fit_quad, label,quad_opt[2])
 
 def quad_fit_lstsq(t,tv,y):
     A = np.vstack([t**2, t, np.ones(len(t))]).T

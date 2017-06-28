@@ -12,8 +12,8 @@ min_ht = 10 #Generates 3465 cmes
 #Create the lists for those two days where we will store their values
 cmes=cme_graphing.find_file(min_year, max_year, min_ht)
 
-x= 15#will run for first 1000 due to time constraints
-for index, cme in cmes.iloc[0:x,:].iterrows(): 
+x=150#will run for first 1000 due to time constraints
+for index, cme in cmes.iloc[135:x,:].iterrows(): 
     ht = cme.loc['HT_DATA']
     times = ht.DATE_TIME.values
     heights = ht.HEIGHT
