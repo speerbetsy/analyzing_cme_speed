@@ -118,16 +118,11 @@ def height_velocity_graphs(x, y, desc, tscope):
     # v_i is the initial velocity for p0
     y3, label3, v_i = lin_curve_fit_h(t, y)
     height_yarrays.append([y3, label3])
-    stat, pvalue = chisquare(y3, f_exp=y)
-    print("this is lin curve stat: ", stat, " and this is lin curve pvalue: ",
-          pvalue)
+
     # Fit 2: Quadratic Curve Fit
     # acc_i is the initial acceleration for p0
     y4, label4, acc_i, h_i = quad_curve_fit_h(t, y)
     height_yarrays.append([y4, label4])
-    stat, pvalue = chisquare(y4, f_exp=y)
-    print("this is quad curve stat: ", stat, " and this is q curve pvalue: ",
-          pvalue)
 
 # Fit 4: Oscillating curve fit
     # in meters and seconds
@@ -154,10 +149,22 @@ def height_velocity_graphs(x, y, desc, tscope):
     velocity_yarrays.append([sin_velocity(tv, *popt[:-1]), vlabel3])
 
 # Next, apply goodness of fit from oscillating fit to real data
-    stat1, pvalue1 = chisquare(sin_height(t, *popt,), f_exp=y, ddof=5)
-    print("this is stat1: ", stat1, " and this is pvalue1: ", pvalue1)
+    # stat1, pvalue1 = chisquare(sin_height(t, *popt,), f_exp=y, ddof=5)
+    # print("this is stat1: ", stat1, " and this is pvalue1: ", pvalue1)
     rchisq = reduced_chi_sq(y, sin_height(t, *popt), tscope)
-    print ("this is reduced chi sq: ", rchisq)
+    ddof = len(y) / 6
+    rchisq = rchisq / ddof
+    print("this is reduced chi sq for hvt curve fit: ", rchisq)
+    
+    rchisq = reduced_chi_sq(y, y3, tscope)
+    ddof = len(y) / 2
+    rchisq = rchisq / ddof
+    print("this is reduced chi sq for hvt lin fit: ", rchisq)
+    
+    rchisq = reduced_chi_sq(y, y4, tscope)
+    ddof = len(y) / 3
+    rchisq = rchisq / ddof
+    print("this is reduced chi sq for hvt quad fit: ", rchisq)
 
 # HEIGHT AND VELOCITY GRAPH PLOTTING
     height_graphs(ax1, t, height_yarrays, desc)

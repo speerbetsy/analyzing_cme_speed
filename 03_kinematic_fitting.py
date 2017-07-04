@@ -18,6 +18,5 @@ for index, cme in cmes.iloc[137:x, :].iterrows():
     times = ht.DATE_TIME.values
     heights = ht.HEIGHT
     tscope = ht.TEL
-    print(tscope[0] == 'C2')
     # times is in datetime, heights is in Rsun
     cme_graphing.height_velocity_graphs(times, heights, str(times[0]), tscope)
