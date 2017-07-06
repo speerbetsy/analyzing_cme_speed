@@ -1,5 +1,4 @@
 import pickle
-import math
 from matplotlib import pyplot as plt
 import numpy as np
 import datetime
@@ -10,6 +9,11 @@ from scipy.stats import chisquare
 
 rsun = 6.957e8
 au = 1.49598e11
+C2 = 11.4
+C3 = 56.0
+E2 = np.arctan(np.radians(C2/3600)) * au
+E3 = np.arctan(np.radians(C3/3600)) * au
+
 
 
 def find_file(date_min, date_max, min_ht):
@@ -110,19 +114,25 @@ def height_velocity_graphs(x, y, desc, tscope):
     velocity_yarrays = []
 
     # raw data for height and velocity
-    ax1.plot(t/60, y/rsun, '+', label='raw data')
+    ax1.plot(t/60, y/rsun, '+', label='Raw Data')
     tv, vy = get_derivative(y, t)
-    ax2.plot(tv/60, vy/1000, '+', label='raw data')
+    ax2.plot(tv/60, vy/1000, '+', label='Raw Data')
 
     # Fit 1: Linear Curve Fit
     # v_i is the initial velocity for p0
-    y3, label3, v_i = lin_curve_fit_h(t, y)
-    height_yarrays.append([y3, label3])
+    y1, label1, v_i = lin_curve_fit_h(t, y)
+    tv, vy1 = get_derivative(y1, t)
+    vlabel1 = "Linear Curve Fit"
+    height_yarrays.append([y1, label1])
+    velocity_yarrays.append([vy1, vlabel1])
 
     # Fit 2: Quadratic Curve Fit
     # acc_i is the initial acceleration for p0
-    y4, label4, acc_i, h_i = quad_curve_fit_h(t, y)
-    height_yarrays.append([y4, label4])
+    y2, label2, acc_i, h_i = quad_curve_fit_h(t, y)
+    tv, vy2 = get_derivative(y2, t)
+    vlabel2 = "Quad Curve Fit"
+    height_yarrays.append([y2, label2])
+    velocity_yarrays.append([vy2, vlabel2])
 
 # Fit 4: Oscillating curve fit
     # in meters and seconds
@@ -138,31 +148,29 @@ def height_velocity_graphs(x, y, desc, tscope):
     popt, pcov = optimize.curve_fit(sin_height, t, y, p0=[87*1e3, t[-1]*0.75,
                                                           0, v_i, acc_i, h_i],
                                     bounds=limits)
-    vlabel3 = "Oscillating Fit: a0=%.1f km/s, a1=%.1f 1/s, a2=%.1f (phase), \
-                a3=%.1f km/s, a4=%.1f m/s^2 a5= %.1f rsun" % (popt[0]/1000,
-                                                              popt[1]/60,
-                                                              popt[2],
-                                                              popt[3]/1000,
-                                                              popt[4],
-                                                              popt[5]/rsun)
-    height_yarrays.append([sin_height(t, *popt), vlabel3])
+    hlabel3 = "Oscillating Fit: a0=%.1f km/s\na1=%.1f 1/s a2=%.1f (phase)\
+    \na3=%.1f km/s a4=%.1f m/s^2\na5= %.1f rsun" %\
+        (popt[0]/1000, popt[1]/60, popt[2], popt[3]/1000, popt[4],
+         popt[5]/rsun)
+    vlabel3 = "Oscillating Fit"
+    height_yarrays.append([sin_height(t, *popt), hlabel3])
     velocity_yarrays.append([sin_velocity(tv, *popt[:-1]), vlabel3])
 
 # Next, apply goodness of fit from oscillating fit to real data
     # stat1, pvalue1 = chisquare(sin_height(t, *popt,), f_exp=y, ddof=5)
     # print("this is stat1: ", stat1, " and this is pvalue1: ", pvalue1)
     rchisq = reduced_chi_sq(y, sin_height(t, *popt), tscope)
-    ddof = len(y) / 6
+    ddof = len(y) - 6
     rchisq = rchisq / ddof
     print("this is reduced chi sq for hvt curve fit: ", rchisq)
-    
-    rchisq = reduced_chi_sq(y, y3, tscope)
-    ddof = len(y) / 2
+
+    rchisq = reduced_chi_sq(y, y1, tscope)
+    ddof = len(y) - 2
     rchisq = rchisq / ddof
     print("this is reduced chi sq for hvt lin fit: ", rchisq)
-    
-    rchisq = reduced_chi_sq(y, y4, tscope)
-    ddof = len(y) / 3
+
+    rchisq = reduced_chi_sq(y, y2, tscope)
+    ddof = len(y) - 3
     rchisq = rchisq / ddof
     print("this is reduced chi sq for hvt quad fit: ", rchisq)
 
@@ -179,7 +187,7 @@ def lin_curve_fit_h(t, y):
     lin_opt, lin_cov = curve_fit(lin_height_model, t, y,
                                  p0=[2 * rsun, 400 * 1e3])
     curve_fit_lin = lin_height_model(t, *lin_opt)
-    label = 'Linear Curve Fit, v=%.1f km/s h=%.1f rsun' % (lin_opt[1]/1000,
+    label = 'Linear Curve Fit, v=%.1f km/s\nh=%.1f rsun' % (lin_opt[1]/1000,
                                                            lin_opt[0]/rsun)
     return (curve_fit_lin, label, lin_opt[1])
 
@@ -209,7 +217,7 @@ def quad_curve_fit_h(t, y):
                                                                 400 * 1e3,
                                                                 0.0])
     curve_fit_quad = quad_height_model(t, *quad_opt)
-    label = 'Quad Curve Fit, a=%.1f m/s^2, v=%.1f km/s h=%.1f rsun' \
+    label = 'Quad Curve Fit, a=%.1f m/s^2\nv=%.1f km/s h=%.1f rsun' \
             % (quad_opt[2], quad_opt[1]/1000, quad_opt[0]/rsun)
     return (curve_fit_quad, label, quad_opt[2], quad_opt[0])
 
@@ -231,34 +239,20 @@ def quad_height_model(t, *a):
 
 
 def reduced_chi_sq(y, yu, tscope):
-    chisq = 0
-    n = 0
-    while (n < len(y)):
-        # First, grab the standard error E
-        if (tscope[n] == 'C2'):
-            c = 11.4
-        elif (tscope[n] == 'C3'):
-            c = 56
-        else:
-            c = 0
-        e = math.degrees(math.atan(c/3600)) * au
-        e = e**2
-        # Second, grab deviation
-        dev = y[n] - yu[n]
-        dev = dev**2
-        # Third, divide deviation by error and add
-        chisq += (dev / e)
-        # Fourth, increment
-        n += 1
-    return (chisq)
+    err = np.array(tscope)
+    err[err == 'C2'] = E2
+    err[err == 'C3'] = E3
+    chisq = ((y - yu) / err) ** 2
+    return chisq.sum()
 
 
-def sin_height(time,a_0,a_1,a_2,a_3,a_4,a_5):
-    #sinusoidal height equation
-    return (((-1.0 * a_0 * np.cos((1/a_1)*time*2*np.pi + a_2))/(2*np.pi/a_1)) + a_3*time + 0.5*a_4*(time**2) + a_5)
+def sin_height(time, a_0, a_1, a_2, a_3, a_4, a_5):
+    # sinusoidal height equation
+    return (((-1.0 * a_0 * np.cos((1/a_1)*time*2*np.pi + a_2))/(2*np.pi/a_1)) +
+            a_3 * time + 0.5 * a_4 * (time**2) + a_5)
 
 
-def sin_velocity(time ,a_0, a_1, a_2, a_3, a_4):
+def sin_velocity(time, a_0, a_1, a_2, a_3, a_4):
     # the derivative of the above equation
     return (a_0 * np.sin(((1 / a_1) * time * 2 * np.pi) + a_2) +
             a_3 + a_4 * time)
