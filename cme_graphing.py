@@ -132,6 +132,8 @@ def height_velocity_graphs(x, y, desc, tscope):
     plt.savefig("figures/test/"+t_marks+'.png')
     plt.show()
 
+# RETURN FIT AND RCHI VALUES
+    return (popt, rchisq)
 
 def lin_curve_fit_h(t, y):
     lin_opt, lin_cov = curve_fit(lin_height_model, t, y,
@@ -179,6 +181,18 @@ def sin_velocity(time, a_0, a_1, a_2, a_3, a_4):
     return (a_0 * np.sin(((1 / a_1) * time * 2 * np.pi) + a_2) +
             a_3 + a_4 * time)
 
+
+def to_pkl_file(date, fit_values, rchi_values):
+    # Save fit and rchi values to .pkl file
+    COLUMNS = ('CME-DATE', 'FIT-VALUES', 'RCHI-VALUES')
+    INDEX = np.arange(0, len(fit_values))
+    df = pd.DataFrame(columns=COLUMNS, index=INDEX)
+    for n in INDEX:
+        df.loc[n] = pd.Series({'CME-DATE': date[n],
+                               'FIT-VALUES': fit_values[n],
+                               'RCHI-VALUES': rchi_values[n]})
+    print(df)
+    df.to_pickle('cme_fit_rchi.pkl')
 
 def velocity_graphs(ax2, x, yarray, desc):
     ax2.set_title("Velocity "+desc)
