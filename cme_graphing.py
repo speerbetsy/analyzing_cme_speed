@@ -120,7 +120,7 @@ def height_velocity_graphs(x, y, desc, tscope):
                                                   initial_height],
                                               bounds=limits)
     hlabel_oscil = "Oscillating Fit: A=%.1f km $s^{-1}$,\nP=%.1f 1 $s^{-1}$,\
-    $\Phi$=%.1f,\n a=%.1f m $s^{2}$, v=%.1f km $s^{-1}$,\nh= %.1f $R_{sun}$," \
+    $\Phi$=%.1f,\n a=%.1f m $s^{-2}$, v=%.1f km $s^{-1}$,\nh= %.1f $R_{sun}$," \
     % (oscil_opt[0]/1000, oscil_opt[1]/60, oscil_opt[2], oscil_opt[3]/1000,
        oscil_opt[4], oscil_opt[5]/RSUN)
     t_100 = np.arange(0, t[-1], (t[-1]/100))
@@ -179,7 +179,7 @@ def quad_curve_fit_h(t, y):
                                                                 400 * 1e3,
                                                                 0.0])
     curve_fit_quad = quad_height_model(t, *quad_opt)
-    label = 'Quad Curve Fit: a=%.1f m $s^{2}$,\nv=%.1f km $s^{-1}$,\
+    label = 'Quad Curve Fit: a=%.1f m $s^{-2}$,\nv=%.1f km $s^{-1}$,\
     h=%.1f $R_{sun}$,' % (quad_opt[2], quad_opt[1]/1000, quad_opt[0]/RSUN)
     return (curve_fit_quad, label, quad_opt)
 
@@ -219,7 +219,7 @@ def to_pkl_file(dates, lin_fit_array, quad_fit_array, oscil_fit_array):
                                'QUAD-FIT': quad_fit_array[n],
                                'OSCIL-FIT': oscil_fit_array[n]})
     print(df)
-    df.to_pickle('cme_fit_rchi.pkl')
+    df.to_pickle('cme_fit.pkl')
 
 
 def velocity_graphs(subplt_velocity, x, yarray, desc):
