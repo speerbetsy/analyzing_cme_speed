@@ -89,8 +89,8 @@ def height_velocity_graphs(x, y, desc, tscope):
 
     # Fit 2: Quadratic Curve Fit
     y_height_quad, hlabel_quad, quad_opt = quad_curve_fit_h(t, y_height)
-    rchisq_quad = (reduced_chi_sq(
-            y_height, y_height_quad, tscope)) / (len(y_height) - 3)
+    rchisq_quad = round((reduced_chi_sq(
+            y_height, y_height_quad, tscope)) / (len(y_height) - 3), 2)
     hlabel_quad += "\n$\chi^{2}_{Red}=$%.1f" % rchisq_quad
     height_yarrays.append([y_height_quad, hlabel_quad])
 
@@ -106,8 +106,10 @@ def height_velocity_graphs(x, y, desc, tscope):
     #          [a0max, a1max, a2max, a3max, a4max])
     short_p = 2 * (np.amin(np.diff(tv)))  # period can't be shorter than twice
     #                                       the shortest step
-    limits = ([10 * 1e3, short_p, 0, 10, -20, 0], [10 * 1e4, t[-1], 2*np.pi,
-                                                   300000*1e3, 30, np.inf])
+    #limits = ([10 * 1e3, short_p, 0, 10, -20, 0], [10 * 1e4, t[-1], 2*np.pi,
+     #                                              300000*1e3, 30, np.inf])
+    limits = ([-(np.inf), -(np.inf), -(np.inf), -(np.inf), -(np.inf), -
+               (np.inf)], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
     # Fit 3: Oscillating fit
     initial_acc = quad_opt[2]
     initial_vel = lin_opt[1]
@@ -206,15 +208,16 @@ def sin_velocity(time, a_0, a_1, a_2, a_3, a_4):
             a_3 + a_4 * time)
 
 
-def to_pkl_file(date, fit_values, rchi_values):
+def to_pkl_file(dates, lin_fit_array, quad_fit_array, oscil_fit_array):
     # Save fit and rchi values to .pkl file
-    COLUMNS = ('CME-DATE', 'FIT-VALUES', 'RCHI-VALUES')
-    INDEX = np.arange(0, len(fit_values))
+    COLUMNS = ('CME-DATE', 'LIN-FIT', 'QUAD-FIT', 'OSCIL-FIT',)
+    INDEX = np.arange(0, len(lin_fit_array))
     df = pd.DataFrame(columns=COLUMNS, index=INDEX)
     for n in INDEX:
-        df.loc[n] = pd.Series({'CME-DATE': date[n],
-                               'FIT-VALUES': fit_values[n],
-                               'RCHI-VALUES': rchi_values[n]})
+        df.loc[n] = pd.Series({'CME-DATE': dates[n],
+                               'LIN-FIT': lin_fit_array[n],
+                               'QUAD-FIT': quad_fit_array[n],
+                               'OSCIL-FIT': oscil_fit_array[n]})
     print(df)
     df.to_pickle('cme_fit_rchi.pkl')
 
