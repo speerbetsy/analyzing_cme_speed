@@ -73,12 +73,13 @@ def height_velocity_graphs(x, y, desc, tscope):
 
     # Raw data for height and velocity
     subplt_height.plot(t/60, y_height/RSUN, '+', label='Raw Data')
-    tv, vy = get_derivative(y, t)
+    tv, vy = get_derivative(y_height, t)
     subplt_velocity.plot(tv/60, vy/1000, '+', label='Raw Data')
 
     # Fit 1: Linear Curve Fit
     height_y_lin, hlabel_lin, lin_opt = lin_curve_fit_h(t, y_height)
-    rchisq_lin = (reduced_chi_sq(y_height, height_y_lin, tscope)) / (len(y_height) - 2)
+    rchisq_lin = (reduced_chi_sq(
+            y_height, height_y_lin, tscope)) / (len(y_height) - 2)
     hlabel_lin += " $\chi^{2}_{Red}=$%.1f" % rchisq_lin
     height_yarrays.append([height_y_lin, hlabel_lin])
 
@@ -88,7 +89,8 @@ def height_velocity_graphs(x, y, desc, tscope):
 
     # Fit 2: Quadratic Curve Fit
     y_height_quad, hlabel_quad, quad_opt = quad_curve_fit_h(t, y_height)
-    rchisq_quad = (reduced_chi_sq(y_height, y_height_quad, tscope)) / (len(y_height) - 3)
+    rchisq_quad = (reduced_chi_sq(
+            y_height, y_height_quad, tscope)) / (len(y_height) - 3)
     hlabel_quad += "\n$\chi^{2}_{Red}=$%.1f" % rchisq_quad
     height_yarrays.append([y_height_quad, hlabel_quad])
 
@@ -115,16 +117,16 @@ def height_velocity_graphs(x, y, desc, tscope):
                                                   initial_vel, initial_acc,
                                                   initial_height],
                                               bounds=limits)
-    hlabel3 = "Oscillating Fit: A=%.1f km $s^{-1}$,\nP=%.1f 1 $s^{-1}$,\
+    hlabel_oscil = "Oscillating Fit: A=%.1f km $s^{-1}$,\nP=%.1f 1 $s^{-1}$,\
     $\Phi$=%.1f,\n a=%.1f m $s^{2}$, v=%.1f km $s^{-1}$,\nh= %.1f $R_{sun}$," \
     % (oscil_opt[0]/1000, oscil_opt[1]/60, oscil_opt[2], oscil_opt[3]/1000,
        oscil_opt[4], oscil_opt[5]/RSUN)
     t_100 = np.arange(0, t[-1], (t[-1]/100))
 
-    rchisq = (reduced_chi_sq(y_height, sin_height(t,
-                                           *oscil_opt), tscope)) / (len(y_height) - 6)
-    hlabel3 += " $\chi^{2}_{Red}=$%.1f" % rchisq
-
+    rchisq_oscil = (reduced_chi_sq(
+              y_height, sin_height(
+                      t, *oscil_opt), tscope)) / (len(y_height) - 6)
+    hlabel_oscil += " $\chi^{2}_{Red}=$%.1f" % rchisq_oscil
     vlabel3 = "Oscillating Fit"
     tv_100 = np.arange(0, tv[-1], (tv[-1])/100)
 
@@ -132,13 +134,14 @@ def height_velocity_graphs(x, y, desc, tscope):
     # Plotting the height vs time graph w/out oscillating fit
     height_graphs(subplt_height, t, height_yarrays, desc)
     # Plotting height oscilatting fit
-    subplt_height.plot(t_100/60, sin_height(t_100, *oscil_opt)/RSUN, label=hlabel3)
+    subplt_height.plot(t_100/60, sin_height(t_100, *oscil_opt)/RSUN,
+                       label=hlabel_oscil)
     subplt_height.legend(loc=2)
     # Plotting the velocity vs time graph w/out oscillating fit
     velocity_graphs(subplt_velocity, tv, velocity_yarrays, desc)
     # Plotting velocity oscillating fit
     subplt_velocity.plot(tv_100/60, sin_velocity(tv_100, *oscil_opt[:-1])/1000,
-             label=vlabel3)
+                         label=vlabel3)
     subplt_velocity.legend(loc=2)
     # Formatting the layout and presentation of the height and velocity graphs
     plt.tight_layout()
@@ -147,8 +150,12 @@ def height_velocity_graphs(x, y, desc, tscope):
     plt.show()
 
 # RETURN FIT AND RCHI VALUES
+    lin_opt = np.append(lin_opt, rchisq_lin)
+    quad_opt = np.append(quad_opt, rchisq_quad)
+    oscil_opt = np.append(oscil_opt, rchisq_oscil)
     dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
                  'Oscillating Fit': oscil_opt, 'Date': desc}
+    print("this is dict_fits: ", dict_fits)
     return (dict_fits)
 
 
