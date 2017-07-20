@@ -52,120 +52,132 @@ def height_graphs(subplt_height, x, yarray, desc):
 
 
 def height_velocity_graphs(x, y, desc, tscope):
-    # x is in datetime, y is in RSUN
-    # Setting up the plot
-    fig = plt.figure(1, figsize=(12, 9))
-    plt.clf()
-    subplt_height = fig.add_subplot(121)
-    subplt_velocity = fig.add_subplot(122)
-
-    # Formatting x and y
-    # formatting Time properly so it is seconds from start
-    t = x.astype(float) * 1e-9  # from nanoseconds to seconds
-    t0 = t[0]
-    t -= t0
-    # Converting y from RSUN to meters
-    y_height = (np.array(y)) * RSUN  # y is now in meters
-
-# HEIGHT AND VELOCITY CALCULATIONS
-    height_yarrays = []
-    velocity_yarrays = []
-
-    # Raw data for height and velocity
-    subplt_height.plot(t/60, y_height/RSUN, '+', label='Raw Data')
-    tv, vy = get_derivative(y_height, t)
-    subplt_velocity.plot(tv/60, vy/1000, '+', label='Raw Data')
-
-    # Fit 1: Linear Curve Fit
-    height_y_lin, hlabel_lin, lin_opt = lin_curve_fit_h(t, y_height)
-    rchisq_lin = (reduced_chi_sq(
-            y_height, height_y_lin, tscope)) / (len(y_height) - 2)
-    hlabel_lin += " $\chi^{2}_{Red}=$%.1f" % rchisq_lin
-    height_yarrays.append([height_y_lin, hlabel_lin])
-
-    tv, y_velocity_lin = get_derivative(height_y_lin, t)
-    vlabel_lin = "Linear Curve Fit"
-    velocity_yarrays.append([y_velocity_lin, vlabel_lin])
-
-    # Fit 2: Quadratic Curve Fit
-    y_height_quad, hlabel_quad, quad_opt = quad_curve_fit_h(t, y_height)
-    rchisq_quad = round((reduced_chi_sq(
-            y_height, y_height_quad, tscope)) / (len(y_height) - 3), 2)
-    hlabel_quad += "\n$\chi^{2}_{Red}=$%.1f" % rchisq_quad
-    height_yarrays.append([y_height_quad, hlabel_quad])
-
-    tv, y_velocity_quad = get_derivative(y_height_quad, t)
-    vlabel_quad = "Quad Curve Fit"
-    velocity_yarrays.append([y_velocity_quad, vlabel_quad])
-
-    # Fit 3: Oscillating curve fit
-    # in meters and seconds
-    # a0=amplitude (m/s), a1=phase (s^-1), a2=phase,
-    # a3=velocity (m/s), a4= acceleration (m/s^2)
-    # limits=([a0min, a1min, a2min, a3min, a4min],
-    #          [a0max, a1max, a2max, a3max, a4max])
-    short_p = 2 * (np.amin(np.diff(tv)))  # period can't be shorter than twice
-    #                                       the shortest step
-    #limits = ([10 * 1e3, short_p, 0, 10, -20, 0], [10 * 1e4, t[-1], 2*np.pi,
-     #                                              300000*1e3, 30, np.inf])
-    limits = ([-(np.inf), -(np.inf), -(np.inf), -(np.inf), -(np.inf), -
-               (np.inf)], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
-    # Fit 3: Oscillating fit
-    initial_acc = quad_opt[2]
-    initial_vel = lin_opt[1]
-    initial_height = quad_opt[2]
-    oscil_opt, oscil_cov = optimize.curve_fit(sin_height, t, y_height,
-                                              p0=[87*1e3, t[-1]*0.75, 0,
-                                                  initial_vel, initial_acc,
-                                                  initial_height],
-                                              bounds=limits)
-    hlabel_oscil = "Oscillating Fit: A=%.1f km $s^{-1}$,\nP=%.1f 1 $s^{-1}$,\
-    $\Phi$=%.1f,\n a=%.1f m $s^{-2}$, v=%.1f km $s^{-1}$,\nh= %.1f $R_{sun}$," \
-    % (oscil_opt[0]/1000, oscil_opt[1]/60, oscil_opt[2], oscil_opt[3]/1000,
-       oscil_opt[4], oscil_opt[5]/RSUN)
-    t_100 = np.arange(0, t[-1], (t[-1]/100))
-
-    rchisq_oscil = (reduced_chi_sq(
-              y_height, sin_height(
-                      t, *oscil_opt), tscope)) / (len(y_height) - 6)
-    hlabel_oscil += " $\chi^{2}_{Red}=$%.1f" % rchisq_oscil
-    vlabel3 = "Oscillating Fit"
-    tv_100 = np.arange(0, tv[-1], (tv[-1])/100)
-
-# HEIGHT AND VELOCITY GRAPH PLOTTING
-    # Plotting the height vs time graph w/out oscillating fit
-    height_graphs(subplt_height, t, height_yarrays, desc)
-    # Plotting height oscilatting fit
-    subplt_height.plot(t_100/60, sin_height(t_100, *oscil_opt)/RSUN,
-                       label=hlabel_oscil)
-    subplt_height.legend(loc=2)
-    # Plotting the velocity vs time graph w/out oscillating fit
-    velocity_graphs(subplt_velocity, tv, velocity_yarrays, desc)
-    # Plotting velocity oscillating fit
-    subplt_velocity.plot(tv_100/60, sin_velocity(tv_100, *oscil_opt[:-1])/1000,
-                         label=vlabel3)
-    subplt_velocity.legend(loc=2)
-    # Formatting the layout and presentation of the height and velocity graphs
-    plt.tight_layout()
-    t_marks = desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
-    plt.savefig("figures/test/"+t_marks+'.png')
-    plt.show()
-
-# RETURN FIT AND RCHI VALUES
-    lin_opt = np.append(lin_opt, rchisq_lin)
-    quad_opt = np.append(quad_opt, rchisq_quad)
-    oscil_opt = np.append(oscil_opt, rchisq_oscil)
-    dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
-                 'Oscillating Fit': oscil_opt, 'Date': desc}
-    print("this is dict_fits: ", dict_fits)
-    return (dict_fits)
+    try:
+        # x is in datetime, y is in RSUN
+        # Setting up the plot
+        fig = plt.figure(1, figsize=(12, 9))
+        plt.clf()
+        subplt_height = fig.add_subplot(121)
+        subplt_velocity = fig.add_subplot(122)
+    
+        # Formatting x and y
+        # formatting Time properly so it is seconds from start
+        t = x.astype(float) * 1e-9  # from nanoseconds to seconds
+        t0 = t[0]
+        t -= t0
+        # Converting y from RSUN to meters
+        y_height = (np.array(y)) * RSUN  # y is now in meters
+    
+    # HEIGHT AND VELOCITY CALCULATIONS
+        height_yarrays = []
+        velocity_yarrays = []
+    
+        # Raw data for height and velocity
+        subplt_height.plot(t/60, y_height/RSUN, '+', label='Raw Data')
+        tv, vy = get_derivative(y_height, t)
+        subplt_velocity.plot(tv/60, vy/1000, '+', label='Raw Data')
+    
+        # Fit 1: Linear Curve Fit
+        height_y_lin, hlabel_lin, lin_opt = lin_curve_fit_h(t, y_height)
+        rchisq_lin = (reduced_chi_sq(
+                y_height, height_y_lin, tscope)) / (len(y_height) - 2)
+        hlabel_lin += " $\chi^{2}_{Red}=$%.1f" % rchisq_lin
+        height_yarrays.append([height_y_lin, hlabel_lin])
+    
+        tv, y_velocity_lin = get_derivative(height_y_lin, t)
+        vlabel_lin = "Linear Curve Fit"
+        velocity_yarrays.append([y_velocity_lin, vlabel_lin])
+    
+        # Fit 2: Quadratic Curve Fit
+        y_height_quad, hlabel_quad, quad_opt = quad_curve_fit_h(t, y_height)
+        rchisq_quad = round((reduced_chi_sq(
+                y_height, y_height_quad, tscope)) / (len(y_height) - 3), 2)
+        hlabel_quad += "\n$\chi^{2}_{Red}=$%.1f" % rchisq_quad
+        height_yarrays.append([y_height_quad, hlabel_quad])
+    
+        tv, y_velocity_quad = get_derivative(y_height_quad, t)
+        vlabel_quad = "Quad Curve Fit"
+        velocity_yarrays.append([y_velocity_quad, vlabel_quad])
+    
+        # Fit 3: Oscillating curve fit
+        # in meters and seconds
+        # a0=amplitude (m/s), a1=phase (s^-1), a2=phase,
+        # a3=velocity (m/s), a4= acceleration (m/s^2)
+        # limits=([a0min, a1min, a2min, a3min, a4min],
+        #          [a0max, a1max, a2max, a3max, a4max])
+        short_p = 2 * (np.amin(np.diff(tv)))  # period can't be shorter than twice
+        #                                       the shortest step
+        #limits = ([10 * 1e3, short_p, 0, 10, -20, 0], [10 * 1e4, t[-1], 2*np.pi,
+         #                                              300000*1e3, 30, np.inf])
+        limits = ([-(np.inf), -(np.inf), -(np.inf), -(np.inf), -(np.inf), -
+                   (np.inf)], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
+        # Fit 3: Oscillating fit
+        initial_acc = quad_opt[2]
+        initial_vel = lin_opt[1]
+        initial_height = quad_opt[2]
+        oscil_opt, oscil_cov = optimize.curve_fit(sin_height, t, y_height,
+                                                  p0=[87*1e3, t[-1]*0.75, 0,
+                                                      initial_vel, initial_acc,
+                                                      initial_height],
+                                                  bounds=limits)
+        hlabel_oscil = "Oscillating Fit: A=%.1f km s$^{-1}$,\nP=%.1f min, $\Phi$=%.1f, a=%.1f m s$^{-2}$,\
+        \nv=%.1f km s$^{-1}$, h= %.1f R$_{sun}$,\n" \
+        % (oscil_opt[0]/1000, (oscil_opt[1]/60)**-1, oscil_opt[2], oscil_opt[4],
+           oscil_opt[3]/1000, oscil_opt[5]/RSUN)
+        t_100 = np.arange(0, t[-1], (t[-1]/100))
+    
+        rchisq_oscil = (reduced_chi_sq(
+                  y_height, sin_height(
+                          t, *oscil_opt), tscope)) / (len(y_height) - 6)
+        hlabel_oscil += " $\chi^{2}_{Red}=$%.1f" % rchisq_oscil
+        vlabel3 = "Oscillating Fit"
+        # tv_100 = np.arange(0, tv[-1], (tv[-1])/100)
+        tv_100 = np.arange(tv[0], tv[-1], (tv[-1])/100)
+        tv_100 = np.append(tv_100, tv[-1])
+    
+    # HEIGHT AND VELOCITY GRAPH PLOTTING
+        # Plotting the height vs time graph w/out oscillating fit
+        height_graphs(subplt_height, t, height_yarrays, desc)
+        # Plotting height oscilatting fit
+        subplt_height.plot(t_100/60, sin_height(t_100, *oscil_opt)/RSUN,
+                           label=hlabel_oscil)
+        subplt_height.legend(loc=2)
+        # Plotting the velocity vs time graph w/out oscillating fit
+        velocity_graphs(subplt_velocity, tv, velocity_yarrays, desc)
+        # Plotting velocity oscillating fit
+        subplt_velocity.plot(tv_100/60, sin_velocity(tv_100, *oscil_opt[:-1])/1000,
+                             label=vlabel3)
+        subplt_velocity.legend(loc=2)
+        # Formatting the layout and presentation of the height and velocity graphs
+        plt.tight_layout()
+        t_marks = desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
+        plt.savefig("figures/test/"+t_marks+'.png')
+        plt.show()
+    
+    # RETURN FIT AND RCHI VALUES
+        lin_opt = np.append(lin_opt, rchisq_lin)
+        quad_opt = np.append(quad_opt, rchisq_quad)
+        oscil_opt = np.append(oscil_opt, rchisq_oscil)
+        dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
+                     'Oscillating Fit': oscil_opt, 'Date': desc}
+        print("this is dict_fits: ", dict_fits)
+        return (dict_fits)
+    except Exception as ex:
+        print('Error: ', ex)
+        lin_opt = np.array([np.inf, np.inf, np.inf])
+        quad_opt = np.array([np.inf, np.inf, np.inf, np.inf])
+        oscil_opt = np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
+        dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
+                     'Oscillating Fit': oscil_opt, 'Date': desc}
+        return (dict_fits)
+        
 
 
 def lin_curve_fit_h(t, y):
     lin_opt, lin_cov = curve_fit(lin_height_model, t, y,
                                  p0=[2 * RSUN, 400 * 1e3])
     curve_fit_lin = lin_height_model(t, *lin_opt)
-    label = 'Linear Curve Fit: v=%.1f km $s^{-1}$,\nh=%.1f $R_{sun}$,' % \
+    label = 'Linear Curve Fit: v=%.1f km s$^{-1}$,\nh=%.1f R$_{sun}$,' % \
         (lin_opt[1]/1000, lin_opt[0]/RSUN)
     return (curve_fit_lin, label, lin_opt)
 
@@ -179,8 +191,8 @@ def quad_curve_fit_h(t, y):
                                                                 400 * 1e3,
                                                                 0.0])
     curve_fit_quad = quad_height_model(t, *quad_opt)
-    label = 'Quad Curve Fit: a=%.1f m $s^{-2}$,\nv=%.1f km $s^{-1}$,\
-    h=%.1f $R_{sun}$,' % (quad_opt[2], quad_opt[1]/1000, quad_opt[0]/RSUN)
+    label = 'Quad Curve Fit: a=%.1f m s$^{-2}$,\nv=%.1f km s$^{-1}$, h=%.1f R$_{sun}$,'% (
+            quad_opt[2], quad_opt[1]/1000, quad_opt[0]/RSUN)
     return (curve_fit_quad, label, quad_opt)
 
 
@@ -225,7 +237,7 @@ def to_pkl_file(dates, lin_fit_array, quad_fit_array, oscil_fit_array):
 def velocity_graphs(subplt_velocity, x, yarray, desc):
     subplt_velocity.set_title("Velocity "+desc)
     subplt_velocity.set_xlabel('Time (min)')
-    subplt_velocity.set_ylabel('Velocity (km $s^{-1}$)')
+    subplt_velocity.set_ylabel('Velocity (km s$^{-1}$)')
     for y in yarray:
         subplt_velocity.plot(x/60, y[0]/1000, label=y[1])
     return (subplt_velocity)
