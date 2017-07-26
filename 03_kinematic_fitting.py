@@ -25,7 +25,7 @@ quad_fit_array = []
 oscil_fit_array = []
 
 x = 200  # will run for first 1000 due to time constraints
-for index, cme in cmes.iloc[300:350, :].iterrows():
+for index, cme in cmes.iloc[330:345, :].iterrows():
     ht = cme.loc['HT_DATA']
     times = ht.DATE_TIME.values
     heights = ht.HEIGHT

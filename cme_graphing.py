@@ -52,53 +52,56 @@ def height_graphs(subplt_height, x, yarray, desc):
 
 
 def height_velocity_graphs(x, y, desc, tscope):
+    # x is in datetime, y is in RSUN
+    # Setting up the plot
+    fig = plt.figure(1, figsize=(12, 9))
+    plt.clf()
+    subplt_height = fig.add_subplot(121)
+    subplt_velocity = fig.add_subplot(122)
+
+    # Formatting x and y
+    # formatting Time properly so it is seconds from start
+    t = x.astype(float) * 1e-9  # from nanoseconds to seconds
+    t0 = t[0]
+    t -= t0
+    # Converting y from RSUN to meters
+    y_height = (np.array(y)) * RSUN  # y is now in meters
+
+# HEIGHT AND VELOCITY CALCULATIONS
+    height_yarrays = []
+    velocity_yarrays = []
+
+    # Raw data for height and velocity
+    subplt_height.plot(t/60, y_height/RSUN, '+', label='Raw Data')
+    tv, vy = get_derivative(y_height, t)
+    subplt_velocity.plot(tv/60, vy/1000, '+', label='Raw Data')
+
+    # Fit 1: Linear Curve Fit
+    height_y_lin, hlabel_lin, lin_opt = lin_curve_fit_h(t, y_height)
+    rchisq_lin = (reduced_chi_sq(
+            y_height, height_y_lin, tscope)) / (len(y_height) - 2)
+    lin_opt = np.append(lin_opt, rchisq_lin)
+    hlabel_lin += " $\chi^{2}_{Red}=$%.1f" % rchisq_lin
+    height_yarrays.append([height_y_lin, hlabel_lin])
+
+    tv, y_velocity_lin = get_derivative(height_y_lin, t)
+    vlabel_lin = "Linear Curve Fit"
+    velocity_yarrays.append([y_velocity_lin, vlabel_lin])
+    
+
+    # Fit 2: Quadratic Curve Fit
+    y_height_quad, hlabel_quad, quad_opt = quad_curve_fit_h(t, y_height)
+    rchisq_quad = round((reduced_chi_sq(
+            y_height, y_height_quad, tscope)) / (len(y_height) - 3), 2)
+    quad_opt = np.append(quad_opt, rchisq_quad)
+    hlabel_quad += "\n$\chi^{2}_{Red}=$%.1f" % rchisq_quad
+    height_yarrays.append([y_height_quad, hlabel_quad])
+
+    tv, y_velocity_quad = get_derivative(y_height_quad, t)
+    vlabel_quad = "Quad Curve Fit"
+    velocity_yarrays.append([y_velocity_quad, vlabel_quad])
+
     try:
-        # x is in datetime, y is in RSUN
-        # Setting up the plot
-        fig = plt.figure(1, figsize=(12, 9))
-        plt.clf()
-        subplt_height = fig.add_subplot(121)
-        subplt_velocity = fig.add_subplot(122)
-
-        # Formatting x and y
-        # formatting Time properly so it is seconds from start
-        t = x.astype(float) * 1e-9  # from nanoseconds to seconds
-        t0 = t[0]
-        t -= t0
-        # Converting y from RSUN to meters
-        y_height = (np.array(y)) * RSUN  # y is now in meters
-
-    # HEIGHT AND VELOCITY CALCULATIONS
-        height_yarrays = []
-        velocity_yarrays = []
-
-        # Raw data for height and velocity
-        subplt_height.plot(t/60, y_height/RSUN, '+', label='Raw Data')
-        tv, vy = get_derivative(y_height, t)
-        subplt_velocity.plot(tv/60, vy/1000, '+', label='Raw Data')
-
-        # Fit 1: Linear Curve Fit
-        height_y_lin, hlabel_lin, lin_opt = lin_curve_fit_h(t, y_height)
-        rchisq_lin = (reduced_chi_sq(
-                y_height, height_y_lin, tscope)) / (len(y_height) - 2)
-        hlabel_lin += " $\chi^{2}_{Red}=$%.1f" % rchisq_lin
-        height_yarrays.append([height_y_lin, hlabel_lin])
-
-        tv, y_velocity_lin = get_derivative(height_y_lin, t)
-        vlabel_lin = "Linear Curve Fit"
-        velocity_yarrays.append([y_velocity_lin, vlabel_lin])
-
-        # Fit 2: Quadratic Curve Fit
-        y_height_quad, hlabel_quad, quad_opt = quad_curve_fit_h(t, y_height)
-        rchisq_quad = round((reduced_chi_sq(
-                y_height, y_height_quad, tscope)) / (len(y_height) - 3), 2)
-        hlabel_quad += "\n$\chi^{2}_{Red}=$%.1f" % rchisq_quad
-        height_yarrays.append([y_height_quad, hlabel_quad])
-
-        tv, y_velocity_quad = get_derivative(y_height_quad, t)
-        vlabel_quad = "Quad Curve Fit"
-        velocity_yarrays.append([y_velocity_quad, vlabel_quad])
-
         # Fit 3: Oscillating curve fit
         # in meters and seconds
         # a0=amplitude (m/s), a1=phase (s^-1), a2=phase,
@@ -129,6 +132,7 @@ def height_velocity_graphs(x, y, desc, tscope):
         rchisq_oscil = (reduced_chi_sq(
                   y_height, sin_height(
                           t, *oscil_opt), tscope)) / (len(y_height) - 6)
+        
         hlabel_oscil += " $\chi^{2}_{Red}=$%.1f" % rchisq_oscil
         vlabel3 = "Oscillating Fit"
         # tv_100 = np.arange(0, tv[-1], (tv[-1])/100)
@@ -152,24 +156,17 @@ def height_velocity_graphs(x, y, desc, tscope):
         plt.tight_layout()
         t_marks = desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
         plt.savefig("figures/test/"+t_marks+'.png')
-        plt.show()
-
-    # RETURN FIT AND RCHI VALUES
-        lin_opt = np.append(lin_opt, rchisq_lin)
-        quad_opt = np.append(quad_opt, rchisq_quad)
+        #plt.show()
         oscil_opt = np.append(oscil_opt, rchisq_oscil)
-        dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
-                     'Oscillating Fit': oscil_opt, 'Date': desc}
-        print("this is dict_fits: ", dict_fits)
-        return (dict_fits)
+        
     except Exception as ex:
-        print('Error: ', ex)
-        lin_opt = np.array([np.inf, np.inf, np.inf])
-        quad_opt = np.array([np.inf, np.inf, np.inf, np.inf])
+        print('Error: Cant make oscillatory fit because: ', ex)
         oscil_opt = np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
-        dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
+    
+    dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
                      'Oscillating Fit': oscil_opt, 'Date': desc}
-        return (dict_fits)
+    print("this is dict_fits: ", dict_fits)
+    return (dict_fits)
 
 
 def lin_curve_fit_h(t, y):
