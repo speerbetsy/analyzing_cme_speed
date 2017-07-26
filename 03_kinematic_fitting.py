@@ -14,7 +14,7 @@ date2 = datetime.datetime(2000, 3, 7, 16, 30, 5)
 min_ht = 10  # Generates 3465 cmes
 
 # Create the lists for those two days where we will store their values
-cmes = cme_graphing.find_file(date2, date2, min_ht)
+cmes = cme_graphing.find_file(min_year, max_year, min_ht)
 
 
 # Creating the linear, quadratic, and oscillating fit arrays that will be
@@ -24,8 +24,8 @@ lin_fit_array = []
 quad_fit_array = []
 oscil_fit_array = []
 
-x = 100  # will run for first 1000 due to time constraints
-for index, cme in cmes.iloc[0:1, :].iterrows():
+x = 200  # will run for first 1000 due to time constraints
+for index, cme in cmes.iloc[300:350, :].iterrows():
     ht = cme.loc['HT_DATA']
     times = ht.DATE_TIME.values
     heights = ht.HEIGHT
