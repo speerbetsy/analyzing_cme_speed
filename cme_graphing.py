@@ -1,4 +1,5 @@
 import pickle
+import statistics
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -127,7 +128,7 @@ def height_velocity_graphs(x, y, desc, tscope):
         \nv=%.1f km s$^{-1}$, h= %.1f R$_{sun}$,\n" \
         % (oscil_opt[0]/1000, (oscil_opt[1]/60), oscil_opt[2], oscil_opt[4],
            oscil_opt[3]/1000, oscil_opt[5]/RSUN)
-        t_100 = np.arange(0, t[-1], (t[-1]/100))
+        t_500 = np.arange(0, t[-1], (t[-1]/500))
     
         rchisq_oscil = (reduced_chi_sq(
                   y_height, sin_height(
@@ -136,20 +137,20 @@ def height_velocity_graphs(x, y, desc, tscope):
         hlabel_oscil += " $\chi^{2}_{Red}=$%.1f" % rchisq_oscil
         vlabel3 = "Oscillating Fit"
         # tv_100 = np.arange(0, tv[-1], (tv[-1])/100)
-        tv_100 = np.arange(tv[0], tv[-1], (tv[-1])/100)
-        tv_100 = np.append(tv_100, tv[-1])
+        tv_500 = np.arange(tv[0], tv[-1], (tv[-1])/500)
+        tv_500 = np.append(tv_500, tv[-1])
 
     # HEIGHT AND VELOCITY GRAPH PLOTTING
         # Plotting the height vs time graph w/out oscillating fit
         height_graphs(subplt_height, t, height_yarrays, desc)
         # Plotting height oscilatting fit
-        subplt_height.plot(t_100/60, sin_height(t_100, *oscil_opt)/RSUN,
+        subplt_height.plot(t_500/60, sin_height(t_500, *oscil_opt)/RSUN,
                            label=hlabel_oscil)
         subplt_height.legend(loc=2)
         # Plotting the velocity vs time graph w/out oscillating fit
         velocity_graphs(subplt_velocity, tv, velocity_yarrays, desc)
         # Plotting velocity oscillating fit
-        subplt_velocity.plot(tv_100/60, sin_velocity(tv_100, *oscil_opt[:-1])/1000,
+        subplt_velocity.plot(tv_500/60, sin_velocity(tv_500, *oscil_opt[:-1])/1000,
                              label=vlabel3)
         subplt_velocity.legend(loc=2)
         # Formatting the layout and presentation of the height and velocity graphs
@@ -167,6 +168,18 @@ def height_velocity_graphs(x, y, desc, tscope):
                      'Oscillating Fit': oscil_opt, 'Date': desc}
     print("this is dict_fits: ", dict_fits)
     return (dict_fits)
+
+
+def histogram(data, desc, bin_min, bin_max):
+    bins = np.linspace(bin_min, bin_max, 100)
+    plt.hist(data, bins, alpha=0.5, normed=1, facecolor='blue', label='Oscillating Fit')
+
+    # Formatting the histogram
+    plt.xlabel(desc)
+    plt.ylabel('Fraction')
+    plt.title('1996-2004, ' + desc + "=%.1f"%statistics.mean(data) + ", median=%.1f"%statistics.median(data) + ', # of CMEs = 3465')
+    plt.legend(loc=2)
+    plt.show()
 
 
 def lin_curve_fit_h(t, y):
