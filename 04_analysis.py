@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
+
 histogram=plt.figure()
 
 # First, open the pickle file with the cme fit values
@@ -32,8 +33,8 @@ plt.legend(loc=2)
 plt.show()
 
 # Second, grab the acceleration values for the quadratic and oscillating fit
-quad_vel = [el[1] for el in cmes['QUAD-FIT']]
-oscil_vel = [el[3] for el in cmes['OSCIL-FIT'] if el[3] !=np.inf]
+quad_vel = [el[1]/1e3 for el in cmes['QUAD-FIT']]
+oscil_vel = [el[3]/1e3 for el in cmes['OSCIL-FIT'] if el[3] !=np.inf]
 vel_label = 'Velocity [km s$^{-1}$]'
 
 # Third, set up the bins and their limits
@@ -53,7 +54,7 @@ plt.legend(loc=2)
 plt.show()
 
 # Plotting histograms of oscillating fit other values
-oscil_amp = [el[0]/1000 for el in cmes['OSCIL-FIT'] if el[0] !=np.inf]
+oscil_amp = [np.abs(el[0])/1000 for el in cmes['OSCIL-FIT'] if el[0] !=np.inf]
 amp_label = 'Amplitude [km min$^{-1}$]'
 amp_min = -375
 amp_max = 375
@@ -64,6 +65,8 @@ per_label = 'Period [min]'
 per_min = 0
 per_max = 2000
 cme_graphing.histogram(oscil_per, per_label, per_min, per_max)
+
+import ipdb; ipdb.set_trace()
 
 oscil_phi = [el[2] for el in cmes['OSCIL-FIT'] if el[2] !=np.inf]
 phi_label = '$\Phi$'
