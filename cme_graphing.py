@@ -52,7 +52,7 @@ def height_graphs(subplt_height, x, yarray, desc):
     return (subplt_height)
 
 
-def height_velocity_graphs(x, y, desc, tscope):
+def height_velocity_graphs(x, y, desc, n, tscope):
     # x is in datetime, y is in RSUN
     # Setting up the plot
     fig = plt.figure(1, figsize=(12, 9))
@@ -102,27 +102,39 @@ def height_velocity_graphs(x, y, desc, tscope):
     vlabel_quad = "Quad Curve Fit"
     velocity_yarrays.append([y_velocity_quad, vlabel_quad])
 
+
     try:
         # Fit 3: Oscillating curve fit
         # in meters and seconds
-        # a0=amplitude (m/s), a1=phase (s^-1), a2=phase,
+        # a0=amplitude (m/s), a1=freq (s^-1), a2=phase,
         # a3=velocity (m/s), a4= acceleration (m/s^2)
         # limits=([a0min, a1min, a2min, a3min, a4min],
         #          [a0max, a1max, a2max, a3max, a4max])
         short_p = 2 * (np.amin(np.diff(tv)))  # period can't be shorter than twice
         #                                       the shortest step
-    #   limits = ([10 * 1e3, short_p, 0, 10, -20, 0], [10 * 1e4, t[-1], 2*np.pi,
-         #                                              300000*1e3, 30, np.inf])
-        limits = ([-(np.inf), -(np.inf), -(np.inf), -(np.inf), -(np.inf), -
-                   (np.inf)], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
+        limits = ([0, short_p, 0, 0, -20, 0], [1000*1e3, t[-1], 2*np.pi,
+                                                       3000*1e3, 30, np.inf])
+        #limits = ([-(np.inf), -(np.inf), -(np.inf), -(np.inf), -(np.inf), -
+            #       (np.inf)], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
         # Fit 3: Oscillating fit
+        # Coming up with initial guesses to put into the fit 
+        # Amplitude, phase, and period are randomized and changed
+        # Velocity, Acceleration, and Height are constant and taken from othe fits 
+        amp = np.linspace(0,3000*1e3,100)
+        phase = np.linspace(short_p, t[-1], 100)
+        period = np.linspace(0, 2*np.pi, 100)
+        
+        initial_amp = (np.random.choice(amp,1))[0]
+        initial_phase = (np.random.choice(phase,1))[0]
+        initial_period = (np.random.choice(period,1))[0]
         initial_acc = quad_opt[2]
         initial_vel = lin_opt[1]
         initial_height = quad_opt[2]
+        
         oscil_opt, oscil_cov = optimize.curve_fit(sin_height, t, y_height,
-                                                  p0=[(87*1e3), t[-1]*0.4, 0,
-                                                      initial_vel, initial_acc,
-                                                      initial_height],
+                                                  p0=[initial_amp, initial_phase,
+                                                      initial_period, initial_vel,
+                                                      initial_acc, initial_height],
                                                   bounds=limits)
         hlabel_oscil = "Oscillating Fit: A=%.1f km min$^{-1}$,\nP=%.1f min, $\Phi$=%.1f, a=%.1f m s$^{-2}$,\
         \nv=%.1f km s$^{-1}$, h= %.1f R$_{sun}$,\n" \
@@ -155,8 +167,7 @@ def height_velocity_graphs(x, y, desc, tscope):
         subplt_velocity.legend(loc=2)
         # Formatting the layout and presentation of the height and velocity graphs
         plt.tight_layout()
-        t_marks = desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
-        plt.savefig("figures/test/"+t_marks+'.png')
+        plt.savefig("cme_pkls/images/"+desc+"/run"+str(n)+'.png')
         #plt.show()
         oscil_opt = np.append(oscil_opt, rchisq_oscil)
         
@@ -166,13 +177,12 @@ def height_velocity_graphs(x, y, desc, tscope):
     
     dict_fits = {'Linear Fit': lin_opt, 'Quad Fit': quad_opt,
                      'Oscillating Fit': oscil_opt, 'Date': desc}
-    print("this is dict_fits: ", dict_fits)
     return (dict_fits)
 
 
 def histogram(data, desc, bin_min, bin_max):
     bins = np.linspace(bin_min, bin_max, 100)
-    plt.hist(data, bins, alpha=0.5, normed=1, facecolor='blue', label='Oscillating Fit')
+    plt.hist(data, bins, alpha=0.5, facecolor='blue', label='Oscillating Fit')
 
     # Formatting the histogram
     plt.xlabel(desc)
@@ -229,18 +239,36 @@ def sin_velocity(time, a_0, a_1, a_2, a_3, a_4):
             a_3 + a_4 * time)
 
 
-def to_pkl_file(dates, lin_fit_array, quad_fit_array, oscil_fit_array):
+def to_pkl_file(ran, lin_fit_array, quad_fit_array, oscil_fit_array, desc):
     # Save fit and rchi values to .pkl file
-    COLUMNS = ('CME-DATE', 'LIN-FIT', 'QUAD-FIT', 'OSCIL-FIT',)
+    COLUMNS = ('LIN-FIT', 'QUAD-FIT', 'OSCIL-FIT-AMP','OSCIL-FIT-PER','OSCIL-FIT-PHASE','OSCIL-FIT-VEL','OSCIL-FIT-ACC')
+    df = pd.DataFrame(columns=COLUMNS, index=ran)
+    for n in ran:
+        print("this is n: ", n)
+        df.loc[n] = pd.Series({'LIN-FIT': lin_fit_array[n],
+                            'QUAD-FIT': quad_fit_array[n],
+                            'OSCIL-FIT-AMP': oscil_fit_array[n][0],
+                            'OSCIL-FIT-PER': oscil_fit_array[n][1],
+                            'OSCIL-FIT-PHASE': oscil_fit_array[n][2],
+                            'OSCIL-FIT-VEL': oscil_fit_array[n][3],
+                            'OSCIL-FIT-ACC':oscil_fit_array[n][4]} )
+    print(df)
+    df.to_pickle('cme_pkls/pkl_files/'+desc+'.pkl')
+    
+    
+def to_pkl_file2(num, dates, lin_fit_array, quad_fit_array, oscil_fit_array):
+    # Save fit and rchi values to .pkl file
+    COLUMNS = ('RUN', 'LIN-FIT', 'QUAD-FIT', 'OSCIL-FIT',)
     INDEX = np.arange(0, len(lin_fit_array))
     df = pd.DataFrame(columns=COLUMNS, index=INDEX)
     for n in INDEX:
-        df.loc[n] = pd.Series({'CME-DATE': dates[n],
+        df.loc[n] = pd.Series({'RUN': runs[n],
                                'LIN-FIT': lin_fit_array[n],
                                'QUAD-FIT': quad_fit_array[n],
                                'OSCIL-FIT': oscil_fit_array[n]})
     print(df)
-    df.to_pickle('cme_fit.pkl')
+    df.to_pickle('cme_pkls/pkl_files/'+desc+'.pkl')
+
 
 
 def velocity_graphs(subplt_velocity, x, yarray, desc):
