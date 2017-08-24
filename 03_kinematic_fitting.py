@@ -13,7 +13,7 @@ date1 = datetime.datetime(1996, 12, 19, 18, 30, 5)
 date2 = datetime.datetime(2000, 3, 7, 16, 30, 5)
 
 # Must have at least 11 height-time points
-min_ht = 10  # Generates 3465 cmes
+min_ht = 11  # Generates 3465 cmes
 
 # Create the lists for those two days where we will store their values
 cmes = cme_graphing.find_file(min_year, max_year, min_ht)
@@ -27,7 +27,7 @@ print(len(cmes))
 x = 5  # will run for first 1000 cmes due to time constraints
 
 # First FOR loop: grab a CME
-for index, cme in cmes.iloc[0:, :].iterrows():
+for index, cme in cmes.iloc[1613:, :].iterrows():
     # Grab the height time data as well as the type
     # of telescope
     ht = cme.loc['HT_DATA']

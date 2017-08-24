@@ -55,10 +55,10 @@ def height_graphs(subplt_height, x, yarray, desc):
 def height_velocity_graphs(x, y, desc, n, tscope):
     # x is in datetime, y is in RSUN
     # Setting up the plot
-    fig = plt.figure(1, figsize=(12, 9))
-    plt.clf()
-    subplt_height = fig.add_subplot(121)
-    subplt_velocity = fig.add_subplot(122)
+ ##   fig = plt.figure(1, figsize=(12, 9))
+ ##   plt.clf()
+  ##  subplt_height = fig.add_subplot(121)
+   ## subplt_velocity = fig.add_subplot(122)
 
     # Formatting x and y
     # formatting Time properly so it is seconds from start
@@ -73,9 +73,9 @@ def height_velocity_graphs(x, y, desc, n, tscope):
     velocity_yarrays = []
 
     # Raw data for height and velocity
-    subplt_height.plot(t/60, y_height/RSUN, '+', label='Raw Data')
+  ##  subplt_height.plot(t/60, y_height/RSUN, '+', label='Raw Data')
     tv, vy = get_derivative(y_height, t)
-    subplt_velocity.plot(tv/60, vy/1000, '+', label='Raw Data')
+  ##  subplt_velocity.plot(tv/60, vy/1000, '+', label='Raw Data')
 
     # Fit 1: Linear Curve Fit
     height_y_lin, hlabel_lin, lin_opt = lin_curve_fit_h(t, y_height)
@@ -154,20 +154,20 @@ def height_velocity_graphs(x, y, desc, n, tscope):
 
     # HEIGHT AND VELOCITY GRAPH PLOTTING
         # Plotting the height vs time graph w/out oscillating fit
-        height_graphs(subplt_height, t, height_yarrays, desc)
+   ##     height_graphs(subplt_height, t, height_yarrays, desc)
         # Plotting height oscilatting fit
-        subplt_height.plot(t_500/60, sin_height(t_500, *oscil_opt)/RSUN,
-                           label=hlabel_oscil)
-        subplt_height.legend(loc=2)
+    ##    subplt_height.plot(t_500/60, sin_height(t_500, *oscil_opt)/RSUN,
+   ##                        label=hlabel_oscil)
+    ##    subplt_height.legend(loc=2)
         # Plotting the velocity vs time graph w/out oscillating fit
-        velocity_graphs(subplt_velocity, tv, velocity_yarrays, desc)
+   ##     velocity_graphs(subplt_velocity, tv, velocity_yarrays, desc)
         # Plotting velocity oscillating fit
-        subplt_velocity.plot(tv_500/60, sin_velocity(tv_500, *oscil_opt[:-1])/1000,
-                             label=vlabel3)
-        subplt_velocity.legend(loc=2)
+    ##    subplt_velocity.plot(tv_500/60, sin_velocity(tv_500, *oscil_opt[:-1])/1000,
+     ##                        label=vlabel3)
+   ##     subplt_velocity.legend(loc=2)
         # Formatting the layout and presentation of the height and velocity graphs
-        plt.tight_layout()
-        plt.savefig("cme_pkls/images/"+desc+"/run"+str(n)+'.png')
+   ##     plt.tight_layout()
+   ##     plt.savefig("cme_pkls/images/"+desc+"/run"+str(n)+'.png')
         #plt.show()
         oscil_opt = np.append(oscil_opt, rchisq_oscil)
         
@@ -182,7 +182,15 @@ def height_velocity_graphs(x, y, desc, n, tscope):
 
 def histogram(data, desc, bin_min, bin_max):
     bins = np.linspace(bin_min, bin_max, 100)
-    plt.hist(data, bins, alpha=0.5, facecolor='blue', label='Oscillating Fit')
+    n, bins, patches = plt.hist(data, bins, alpha=0.5, facecolor='blue', label='Oscillating Fit')
+    
+    print("these are bin amounts: ", n)
+    print("these are the bins: ", bins)
+    print("this is bins 0: ", bins[0])
+    max_bin = int(np.argmax(n))
+    print ("this is the max bin: ", type(max_bin))
+    peak_val = bins[max_bin]
+    print("this is the value we want: ", peak_val)
 
     # Formatting the histogram
     plt.xlabel(desc)
@@ -190,7 +198,7 @@ def histogram(data, desc, bin_min, bin_max):
     plt.title('1996-2004, ' + desc + "=%.1f"%statistics.mean(data) + ", median=%.1f"%statistics.median(data) + ', # of CMEs = 3465')
     plt.legend(loc=2)
     plt.show()
-
+    
 
 def lin_curve_fit_h(t, y):
     lin_opt, lin_cov = curve_fit(lin_height_model, t, y,
