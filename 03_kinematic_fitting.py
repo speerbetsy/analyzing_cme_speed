@@ -23,11 +23,8 @@ cmes = cme_graphing.find_file(min_year, max_year, min_ht)
 # put in the dictionary later to be returned
 runs = np.arange(1000)
 
-print(len(cmes))
-x = 5  # will run for first 1000 cmes due to time constraints
-
 # First FOR loop: grab a CME
-for index, cme in cmes.iloc[1613:, :].iterrows():
+for index, cme in cmes.iloc[0:, :].iterrows():
     # Grab the height time data as well as the type
     # of telescope
     ht = cme.loc['HT_DATA']
@@ -41,7 +38,7 @@ for index, cme in cmes.iloc[1613:, :].iterrows():
     # for each of the 3,465 CMEs
     desc = str(times[0])
     desc = desc[0:10]+'T'+desc[11:13]+'-'+desc[14:16]+'-'+desc[17:19]
-    newpath = "cme_pkls/images/" + desc + "/"
+    newpath = "cme_pkls/images/" + desc +'new'+ "/"
     if not os.path.exists(newpath):
         os.makedirs(newpath)
     
@@ -65,5 +62,4 @@ for index, cme in cmes.iloc[1613:, :].iterrows():
         dates.append(df['Date'])
         if (df['Oscillating Fit'][0] != np.inf):
             ran.append(n)
-    print ("this is ran: ", ran)
     cme_graphing.to_pkl_file(ran, lin_fit_array, quad_fit_array, oscil_fit_array, desc)
